@@ -11,6 +11,14 @@ let cache: TokenCache | null = null
 export async function getToken(): Promise<string> {
   const now = Date.now()
 
+  // C3: Fail fast with a clear message if no auth credential is configured
+  if (!config.accessToken && !config.refreshToken) {
+    throw new Error(
+      '[xoxoday] No authentication credential found. ' +
+      'Set XOXODAY_REFRESH_TOKEN (for OAuth flow) or XOXODAY_ACCESS_TOKEN (for static token).',
+    )
+  }
+
   // If a static access token is provided, use it — but respect expiry if set
   if (config.accessToken) {
     if (!config.accessTokenExpiry || now < config.accessTokenExpiry - 300_000) {

@@ -51,7 +51,7 @@ Xoxoday MCP Server → Xoxoday API
 \`\`\`
 /app/api/xoxoday/filters/route.ts         → calls giftcard_get_filters
 /app/api/xoxoday/vouchers/route.ts        → calls giftcard_get_vouchers
-/app/api/xoxoday/voucher/[id]/route.ts    → calls giftcard_get_voucher
+/app/api/xoxoday/voucher/[id]/route.ts    → calls giftcard_get_voucher with productName + currencyCode (NOT productId — productId filter is not supported by Xoxoday API; pass product name from catalog link)
 /app/api/xoxoday/balance/route.ts         → calls giftcard_get_balance
 /app/api/xoxoday/redeem/route.ts          → calls giftcard_place_order (POST)
 /app/api/xoxoday/order/[id]/route.ts      → calls giftcard_get_order_details

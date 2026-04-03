@@ -12,8 +12,9 @@ async function main() {
   console.error(`[xoxoday]   categories : ${config.categories.join(', ')}`)
   console.error(`[xoxoday]   client_id  : ${config.maskedId}`)
 
+  // M3: Include env in server name so Claude knows if it's talking to sandbox or production
   const server = new McpServer({
-    name:    'xoxoday',
+    name:    `xoxoday [${config.env}]`,
     version: '0.1.0',
   })
 

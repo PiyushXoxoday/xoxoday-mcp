@@ -40,10 +40,11 @@ export function register(server: McpServer) {
             if (country)      mktFilters.push({ key: 'country',      value: country })
             if (currencyCode) mktFilters.push({ key: 'currencyCode', value: currencyCode })
 
+            // C1: Use limit 500 so markets with >100 products don't miss categories on page 2+
             const vouchersData = await callApi(buildBody('getVouchers', {
               filters:      mktFilters,
               page:         1,
-              limit:        100,
+              limit:        500,
               exchangeRate: 1,
             }))
 

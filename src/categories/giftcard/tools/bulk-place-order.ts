@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { randomUUID } from 'node:crypto'
 import { callApi, buildBody } from '../../../core/client.js'
 import { ok, err } from '../../../core/types.js'
 
@@ -29,7 +30,8 @@ export function register(server: McpServer) {
               quantity:            String(item.quantity),
               email,
               tag,
-              poNumber:            `BULK-${Date.now()}-${item.productId}`,
+              // C3b: Use randomUUID() to prevent duplicate PO numbers on parallel calls
+              poNumber:            `BULK-${randomUUID()}`,
               notifyReceiverEmail: notifyRecipient ? 1 : 0,
               contact:             '',
             }))

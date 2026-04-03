@@ -198,7 +198,7 @@ All Xoxoday calls must go through Next.js API routes under \`/app/api/xoxoday/\`
 \`\`\`
 /app/api/xoxoday/filters/route.ts         → calls giftcard_get_filters
 /app/api/xoxoday/vouchers/route.ts        → calls giftcard_get_vouchers
-/app/api/xoxoday/voucher/[id]/route.ts    → calls giftcard_get_voucher
+/app/api/xoxoday/voucher/[id]/route.ts    → calls giftcard_get_voucher (pass productName + currencyCode — NOT productId, productId filter is not supported by Xoxoday API)
 /app/api/xoxoday/balance/route.ts         → calls giftcard_get_balance
 /app/api/xoxoday/order/route.ts           → calls giftcard_place_order (POST)
 /app/api/xoxoday/order/[id]/route.ts      → calls giftcard_get_order_details
@@ -248,7 +248,7 @@ README.md                                 → 3-step setup: clone → env vars �
    - Search by product name
 
    **Product detail (/app/product/[id]/page.tsx)**
-   - Fetch via \`/api/xoxoday/voucher/[id]\`
+   - H3: Fetch via \`/api/xoxoday/voucher/[id]\` — the route must call \`giftcard_get_voucher\` with \`productName\` (from catalog) + \`currencyCode\`. **Do NOT pass productId** — Xoxoday API does not support productId as a filter parameter for getVouchers. Pass the product name via URL query param from the catalog link.
    - Full brand logo, description, T&C, redemption instructions
    - Denomination picker (parse valueDenominations comma-separated string)
    - Quantity input (respect orderQuantityLimit)
@@ -289,6 +289,58 @@ README.md                                 → 3-step setup: clone → env vars �
    - Network errors → retry up to 3× with exponential backoff
 
 8. All Xoxoday data via MCP tools through API routes — zero hardcoded catalog data
+
+---
+
+## Mobile & Embedding Setup (H4)
+
+### Security Headers (add to next.config.ts)
+\`\`\`typescript
+async headers() {
+  return [{
+    source: '/(.*)',
+    headers: [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },  // change to ALLOWFROM for partner embedding
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      { key: 'Content-Security-Policy', value: [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
+        "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
+        "img-src 'self' data: https: blob:",
+        "style-src 'self' 'unsafe-inline'",
+        "connect-src 'self'",
+        "object-src 'none'",
+      ].join('; ')},
+    ],
+  }]
+},
+\`\`\`
+
+### Razorpay Popup in iframes
+⚠️ **Razorpay opens a popup window** — this is blocked in sandboxed iframes without \`allow-popups\`.
+
+If embedding this store in an iframe:
+\`\`\`html
+<!-- Minimum required sandbox attributes for Razorpay to work -->
+<iframe src="https://your-store.com/checkout"
+  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox">
+</iframe>
+\`\`\`
+
+In checkout.tsx, always guard before opening:
+\`\`\`typescript
+if (typeof window.Razorpay === 'undefined') {
+  setError('Payment system unavailable. If embedded in an iframe, add allow-popups to the sandbox attribute.')
+  return
+}
+\`\`\`
+
+### Mobile Web (PWA/WebView)
+- All denomination buttons must have \`min-h-[44px]\` (Apple HIG / Material Design minimum touch target)
+- Quantity steppers must be at least 44×44px
+- Use \`type="email"\` for email inputs to trigger mobile keyboard
+- Add \`<meta name="viewport" content="width=device-width, initial-scale=1">\` in layout.tsx
 
 ---
 
