@@ -8,9 +8,9 @@ export function register(server: McpServer) {
     'giftcard_get_filters',
     'Get available filters for the Xoxoday gift card catalog. Returns countries, currencies, voucher categories, product types, and price ranges. Call this first to discover what markets and categories are available before calling giftcard_get_vouchers.',
     {
-      filterGroupCode: z.enum(['country', 'currency', 'voucher_category', 'product_category', 'price'])
+      filterGroupCode: z.string()
         .optional()
-        .describe('Specific filter group to fetch. Omit to get all groups.'),
+        .describe('Specific filter group code to fetch. Omit to get all groups. Known values: country, currencyCode, voucher_category, product_category, price, amazon_india, lounge, merchandise, mile_category, payouts, topup, custom_catalog'),
     },
     async ({ filterGroupCode }) => {
       try {

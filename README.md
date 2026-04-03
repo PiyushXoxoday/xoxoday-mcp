@@ -73,18 +73,20 @@ XOXODAY_CLIENT_ID=xxx XOXODAY_CLIENT_SECRET=xxx \
 |---|---|
 | `giftcard_get_filters` | Countries, currencies, categories available |
 | `giftcard_get_vouchers` | Full catalog with logos, denominations, pricing |
+| `giftcard_get_voucher` | Single product detail lookup by product ID |
 | `giftcard_get_balance` | Wallet balance |
 | `giftcard_place_order` | Buy (B2C) or redeem (loyalty) a gift card |
 | `giftcard_bulk_place_order` | Multiple products in one operation |
 | `giftcard_get_order_details` | Voucher codes and order status |
-| `giftcard_get_order_history` | Past orders |
-| `giftcard_get_payment_report` | Transaction history |
+| `giftcard_get_order_history` | Past orders (requires startDate + endDate) |
+| `giftcard_get_payment_report` | Transaction history (requires startDate + endDate) |
 
 ## Available Prompts
 
 | Prompt | Description |
 |---|---|
-| `build_b2c_store` | Generate a complete B2C gift card storefront |
+| `xoxoday_store_setup` | **Start here** — complete pre-launch checklist (account, credentials, wallet, PG, infra, legal, go-live) |
+| `build_b2c_store` | Generate a complete B2C gift card storefront with payment gateway |
 | `build_loyalty_portal` | Generate a loyalty redemption portal |
 | `build_corporate_gifting` | Generate a bulk gifting portal |
 
@@ -121,10 +123,23 @@ Deploy this to **Vercel**, **Railway**, or **Render** for a public URL.
 | `XOXODAY_CLIENT_ID` | ✅ | — | Your Plum OAuth client ID |
 | `XOXODAY_CLIENT_SECRET` | ✅ | — | Your Plum OAuth client secret |
 | `XOXODAY_REFRESH_TOKEN` | ✅ | — | Your Plum OAuth refresh token (from Plum dashboard) |
+| `XOXODAY_ACCESS_TOKEN` | — | — | Optional: current access token — MCP uses this directly and skips fetching a new one |
+| `XOXODAY_ACCESS_TOKEN_EXPIRY` | — | — | Optional but recommended: expiry of `XOXODAY_ACCESS_TOKEN` in **milliseconds epoch** (from the `access_token_expiry` field in the OAuth response). When set, the MCP automatically falls through to the refresh token flow 5 minutes before expiry — enabling zero-downtime token rotation. |
 | `XOXODAY_ENV` | — | `sandbox` | `sandbox` or `production` |
 | `XOXODAY_CATEGORIES` | — | `giftcard` | Comma-separated: `giftcard,lounge,merchandise` |
 | `XOXODAY_TRANSPORT` | — | `stdio` | `stdio` (Claude/Cursor) or `http` (ChatGPT) |
 | `PORT` | — | `3000` | HTTP port (only used when transport=http) |
+
+### Token rotation flow
+
+```
+XOXODAY_ACCESS_TOKEN set?
+├── YES + XOXODAY_ACCESS_TOKEN_EXPIRY set
+│   ├── Token still valid (> 5 min remaining) → use it
+│   └── Token expired → use XOXODAY_REFRESH_TOKEN to fetch a new one automatically
+├── YES, no expiry set → use it always (permanent token, no auto-rotation)
+└── NO → use XOXODAY_REFRESH_TOKEN to fetch access token on first call
+```
 
 ---
 

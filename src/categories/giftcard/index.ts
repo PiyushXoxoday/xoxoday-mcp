@@ -3,6 +3,7 @@ import { CategoryModule } from '../../core/types.js'
 
 // Tools
 import * as getFilters       from './tools/get-filters.js'
+import * as getVoucher       from './tools/get-voucher.js'
 import * as getVouchers      from './tools/get-vouchers.js'
 import * as getBalance       from './tools/get-balance.js'
 import * as placeOrder       from './tools/place-order.js'
@@ -15,11 +16,13 @@ import * as getPaymentReport from './tools/get-payment-report.js'
 import * as b2cStore          from './prompts/b2c-store.js'
 import * as loyaltyPortal     from './prompts/loyalty-portal.js'
 import * as corporateGifting  from './prompts/corporate-gifting.js'
+import * as storeSetup        from './prompts/store-setup.js'
 
 const giftcard: CategoryModule = {
   name: 'giftcard',
   register(server: McpServer) {
     getFilters.register(server)
+    getVoucher.register(server)
     getVouchers.register(server)
     getBalance.register(server)
     placeOrder.register(server)
@@ -31,8 +34,9 @@ const giftcard: CategoryModule = {
     b2cStore.register(server)
     loyaltyPortal.register(server)
     corporateGifting.register(server)
+    storeSetup.register(server)
 
-    console.error('[xoxoday] giftcard: 8 tools + 3 prompts registered')
+    console.error('[xoxoday] giftcard: 9 tools + 4 prompts registered')
   },
 }
 
