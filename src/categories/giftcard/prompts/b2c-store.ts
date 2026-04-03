@@ -59,7 +59,7 @@ const KNOWN_PG_MCPS: Record<string, {
     credFields: ['PAYU_MERCHANT_KEY', 'PAYU_MERCHANT_SALT'],
   },
   braintree: {
-    official:   false,   // community MCP
+    official:   false,
     regions:    'Global (PayPal-owned)',
     install:    'claude mcp add braintree -e BRAINTREE_MERCHANT_ID=<id> -e BRAINTREE_PUBLIC_KEY=<key> -e BRAINTREE_PRIVATE_KEY=<secret> -- npx -y braintree-mcp-server',
     docsUrl:    'https://github.com/QuentinCody/braintree-mcp-server',
@@ -89,7 +89,7 @@ Ask the user: **"Which payment gateway do you want to integrate?"**
 Recommend based on their target market:
 ${PG_TABLE}
 
-- If they pick a gateway from the list above → follow the MCP install instructions below
+- If they pick a gateway from the list above → follow the MCP setup instructions below
 - If they pick a gateway NOT in the list → ask them for:
   1. API documentation URL or PDF
   2. API credentials (key names vary — ask what fields are required)
@@ -114,18 +114,16 @@ ${PG_TABLE}
 ${info.install}
 \`\`\`
 
-### Credentials required:
+### Credentials required (add to .env.local):
 ${info.credFields.map(f => `- \`${f}\``).join('\n')}
-Get these from the ${pg} dashboard / developer portal.
 
-### Integration pattern in the app:
+### Integration pattern:
 1. Use the ${pg} MCP tools to create a payment intent / order
-2. Show the ${pg} payment UI (hosted fields or redirect)
-3. On payment SUCCESS → immediately call \`giftcard_place_order\`
+2. Show the ${pg} payment UI (hosted fields or redirect) in the browser
+3. On payment SUCCESS → call the Next.js API route which calls \`giftcard_place_order\`
 4. On payment FAILURE → show error, do NOT call \`giftcard_place_order\`
-5. Handle webhooks if needed for async payment confirmation
 
-⚠️ Always capture payment BEFORE calling giftcard_place_order. Never charge the Xoxoday wallet if payment has not been confirmed.`
+⚠️ Payment gateway secret keys must go in Next.js API routes ONLY — never in browser components.`
   }
 
   return `## Payment Gateway: ${pg} — ❌ No MCP Available
@@ -133,27 +131,24 @@ Get these from the ${pg} dashboard / developer portal.
 No known MCP server exists for "${pg}". Before building, ask the user to share:
 
 1. **API documentation** — URL, PDF, or Postman collection
-2. **Required credentials** — ask: "What API keys or secrets do I need? (e.g. API key, client ID + secret, merchant ID)"
+2. **Required credentials** — ask: "What API keys or secrets do I need?"
 3. **Sandbox environment** — "Do you have test/sandbox credentials?"
-4. **Webhook requirements** — "Does payment confirmation come via webhook or synchronous response?"
-5. **SDK availability** — "Is there an official JavaScript/TypeScript SDK?"
+4. **Webhook requirements** — "Does payment confirmation come via webhook or sync response?"
 
-Once you have the above, integrate ${pg} directly in the frontend:
-- Create \`src/services/${key}Payment.ts\` with the payment flow
-- Store all credentials as environment variables (\`VITE_${key.toUpperCase()}_*\` for Vite, \`NEXT_PUBLIC_*\` for Next.js public keys only)
-- Keep secret keys server-side only (API route / backend) — never expose in frontend bundle
-- On payment success → call \`giftcard_place_order\``
+Once you have the above, integrate ${pg} via a Next.js API route:
+- Create \`/app/api/payment/create/route.ts\` with the payment creation logic
+- Store credentials as env vars — never expose secret keys in browser components`
 }
 
 export function register(server: McpServer) {
   server.prompt(
     'build_b2c_store',
-    'Generate a complete B2C gift card storefront pre-integrated with Xoxoday APIs and a payment gateway',
+    'Generate a complete, secure, deployable B2C gift card storefront — Next.js app with API routes (server-side credentials), customer store, admin dashboard, payment gateway integration, and deployment config',
     {
       country:         z.string().describe('Target country code e.g. US, IN, GB'),
       currency:        z.string().describe('Currency code e.g. USD, INR, GBP'),
-      framework:       z.enum(['react', 'nextjs', 'vue']).optional().default('react'),
-      ui_library:      z.string().optional().describe('UI library e.g. tailwind, mui, shadcn'),
+      framework:       z.enum(['nextjs', 'react', 'vue']).optional().default('nextjs').describe('nextjs is strongly recommended — it provides built-in API routes to keep credentials server-side'),
+      ui_library:      z.string().optional().describe('UI library e.g. tailwind, shadcn, mui'),
       brand_color:     z.string().optional().describe('Primary brand color hex e.g. #6C3AC7'),
       logo_url:        z.string().optional().describe('Your logo URL'),
       payment_gateway: z.string().optional().describe('Payment gateway: stripe, paypal, adyen, square, mollie, razorpay, payu, braintree — or leave blank to be guided'),
@@ -163,13 +158,13 @@ export function register(server: McpServer) {
         role: 'user',
         content: {
           type: 'text',
-          text: `Build a production-ready B2C gift card storefront using the Xoxoday MCP tools.
+          text: `Build a production-ready, secure, deployable B2C gift card store using the Xoxoday MCP tools.
 
-Requirements:
-- Framework: ${framework}
-- UI: ${ui_library || 'Tailwind CSS'}
+## Project Requirements
+- Framework: ${framework}${framework !== 'nextjs' ? ' ⚠️ NOTE: Without Next.js, you MUST set up a separate backend server — credentials cannot go in the browser. Consider switching to nextjs.' : ''}
+- UI: ${ui_library || 'Tailwind CSS + shadcn/ui'}
 - Country: ${country} | Currency: ${currency}
-- Brand color: ${brand_color || '#6C3AC7'} | Logo: ${logo_url || 'use text logo'}
+- Brand color: ${brand_color || '#6C3AC7'} | Logo: ${logo_url || 'text logo'}
 - Payment gateway: ${payment_gateway || 'NOT specified — follow Step 1 below first'}
 
 ---
@@ -178,49 +173,130 @@ ${pgGuidance(payment_gateway)}
 
 ---
 
-## Store Build Steps (follow AFTER payment gateway is confirmed)
+## Architecture (MANDATORY — follow this exactly)
 
-1. Call giftcard_get_filters to discover available categories for ${country}/${currency}
-2. Call giftcard_get_vouchers(country=${country}, currencyCode=${currency}, limit=20) to get the catalog
-3. Call giftcard_get_balance to verify the wallet has sufficient credit
+\`\`\`
+Browser (React components)
+    ↓  fetch('/api/xoxoday/...')
+Next.js API Routes  ← Xoxoday credentials live HERE (server-side only)
+    ↓  MCP tool calls
+Xoxoday MCP Server → Xoxoday API
 
-4. Build these screens:
+Browser (React components)
+    ↓  Payment gateway frontend SDK (public key only)
+Payment Gateway API  ← PG secret key lives in Next.js API routes
+\`\`\`
 
-   **Catalog page**
+**NEVER import or call Xoxoday MCP tools directly from React components.**
+All Xoxoday calls must go through Next.js API routes under \`/app/api/xoxoday/\`.
+
+---
+
+## Files to Generate
+
+### Next.js API Routes (server-side — credentials safe here)
+\`\`\`
+/app/api/xoxoday/filters/route.ts         → calls giftcard_get_filters
+/app/api/xoxoday/vouchers/route.ts        → calls giftcard_get_vouchers
+/app/api/xoxoday/voucher/[id]/route.ts    → calls giftcard_get_voucher
+/app/api/xoxoday/balance/route.ts         → calls giftcard_get_balance
+/app/api/xoxoday/order/route.ts           → calls giftcard_place_order (POST)
+/app/api/xoxoday/order/[id]/route.ts      → calls giftcard_get_order_details
+/app/api/xoxoday/orders/route.ts          → calls giftcard_get_order_history
+/app/api/payment/create/route.ts          → creates payment intent via PG
+/app/api/payment/webhook/route.ts         → PG webhook handler → triggers place_order
+\`\`\`
+
+### Customer-Facing Store Pages
+\`\`\`
+/app/page.tsx                             → Catalog: grid of gift cards with filters
+/app/product/[id]/page.tsx               → Product detail: logo, denominations, buy button
+/app/checkout/page.tsx                   → Payment form → PG checkout
+/app/order/[id]/page.tsx                 → Order confirmation: voucher codes, instructions
+/app/orders/page.tsx                     → Order history list
+\`\`\`
+
+### Admin Dashboard (password-protected)
+\`\`\`
+/app/admin/page.tsx                      → Overview: balance card, recent orders, alerts
+/app/admin/orders/page.tsx               → All orders with status filter
+/app/admin/payments/page.tsx             → Payment report / transaction history
+/middleware.ts                            → Protect /admin with ADMIN_PASSWORD env var
+\`\`\`
+
+### Config & Deployment
+\`\`\`
+.env.example                              → All required env vars with descriptions
+vercel.json                               → Vercel deployment config
+README.md                                 → 3-step setup: clone → env vars → deploy
+\`\`\`
+
+---
+
+## Build Steps
+
+1. Call \`giftcard_get_filters\` to discover categories for ${country}/${currency}
+2. Call \`giftcard_get_vouchers(country=${country}, currencyCode=${currency}, limit=20)\` to get catalog
+3. Call \`giftcard_get_balance\` to display wallet status in admin
+
+4. **Customer store screens:**
+
+   **Catalog (/app/page.tsx)**
+   - Fetch via \`/api/xoxoday/vouchers\`
    - Product grid: brand logo (imageUrl), name, starting denomination, discount badge
-   - Filter sidebar: by voucher_category and price range
+   - Filter sidebar: voucher category, price range (from filters API)
    - Search by product name
-   - "Buy Now" CTA on each card
 
-   **Product detail page**
-   - Brand logo, full description, T&C, redemption instructions
-   - Denomination picker (from valueDenominations — comma-separated string, split and parse)
+   **Product detail (/app/product/[id]/page.tsx)**
+   - Fetch via \`/api/xoxoday/voucher/[id]\`
+   - Full brand logo, description, T&C, redemption instructions
+   - Denomination picker (parse valueDenominations comma-separated string)
    - Quantity input (respect orderQuantityLimit)
-   - Recipient email input (required for digital delivery)
-   - "Proceed to Pay" button
+   - Recipient email input
+   - "Pay Now" button
 
-   **Checkout & payment flow**
-   - Collect payment via the configured gateway FIRST
-   - Only on confirmed payment success → call giftcard_place_order({ productId, denomination, quantity, email, tag: "b2c_store" })
-   - On place_order success → redirect to Order Confirmation
-   - On any failure → show clear error message, refund if payment was already captured
+   **Checkout (/app/checkout/page.tsx)**
+   - Call \`/api/payment/create\` to create payment intent
+   - Show ${payment_gateway || 'payment gateway'} UI
+   - On success → POST to \`/api/xoxoday/order\` → place_order({ productId, denomination, quantity, email, tag: "b2c_store" })
+   - Redirect to \`/order/[id]\`
 
-   **Order confirmation page**
-   - Call giftcard_get_order_details(orderId)
-   - Display voucher code(s), PIN if applicable, expiry date, redemption instructions
-   - "Copy code" button, email resend option
+   **Order confirmation (/app/order/[id]/page.tsx)**
+   - Fetch via \`/api/xoxoday/order/[id]\`
+   - Display voucher code(s), PIN, expiry, redemption instructions
+   - Copy-to-clipboard button
 
-   **Order history page**
-   - Call giftcard_get_order_history(startDate, endDate)
-   - Show status per order: processing / delivered / failed
+   **Order history (/app/orders/page.tsx)**
+   - Fetch via \`/api/xoxoday/orders?startDate=...&endDate=...\`
 
-5. Error handling:
-   - 402 Insufficient balance → "Please contact the store admin"
-   - Invalid denomination → show valid options parsed from valueDenominations
-   - Network errors → retry up to 3 times with exponential backoff
-   - Payment declined → never call place_order, surface the gateway's error message
+5. **Admin dashboard (/app/admin/):**
+   - Balance card: fetch \`/api/xoxoday/balance\` — show warning if below threshold
+   - Recent orders table: last 30 days, sortable by status
+   - Payment report: date-range picker → transaction table
+   - Protected by middleware checking \`ADMIN_PASSWORD\` env var
 
-6. All Xoxoday data must come from MCP tools — no mocked or hardcoded catalog data`,
+6. **Deployment files:**
+   - \`.env.example\` listing: XOXODAY_CLIENT_ID, XOXODAY_CLIENT_SECRET, XOXODAY_REFRESH_TOKEN,
+     XOXODAY_ACCESS_TOKEN, XOXODAY_ACCESS_TOKEN_EXPIRY, XOXODAY_ENV, ADMIN_PASSWORD,
+     and all PG credential variables
+   - \`vercel.json\` with framework: nextjs
+   - Store \`README.md\` with: 1) clone repo 2) copy .env.example → fill values 3) vercel deploy
+
+7. **Error handling:**
+   - 402 Insufficient balance → "Store temporarily unavailable — contact support"
+   - Invalid denomination → show valid options from valueDenominations
+   - Payment declined → do NOT call place_order, show gateway error message
+   - Network errors → retry up to 3× with exponential backoff
+
+8. All Xoxoday data via MCP tools through API routes — zero hardcoded catalog data
+
+---
+
+## After Building — 3 Manual Steps Remaining
+Tell the user:
+1. **Fund Xoxoday wallet** → Plum Dashboard → Wallet → Add Funds (prepaid model)
+2. **Complete KYB** with Xoxoday if not done (takes 1–3 business days)
+3. **Deploy** → run \`vercel deploy\` in the project directory`,
         },
       }],
     })

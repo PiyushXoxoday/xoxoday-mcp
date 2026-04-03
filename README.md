@@ -53,11 +53,40 @@ XOXODAY_CLIENT_ID=xxx XOXODAY_CLIENT_SECRET=xxx \
 
 ---
 
+## How It Works in Production
+
+When Claude generates a store, credentials are kept server-side — never in the browser:
+
+```
+Browser (React components)
+    ↓  fetch('/api/xoxoday/...')
+Next.js API Routes  ← Xoxoday credentials live HERE (env vars, server-side only)
+    ↓  MCP tool calls
+Xoxoday MCP Server → Xoxoday API
+
+Browser (React components)
+    ↓  Payment gateway frontend SDK (public key only)
+Payment Gateway API  ← PG secret key lives in Next.js API routes
+```
+
+Claude generates the full stack:
+- `/app/api/xoxoday/` — server-side proxy routes (filters, vouchers, balance, orders, redemption)
+- `/app/` — customer-facing store pages (catalog, product, checkout, order confirmation, history)
+- `/app/admin/` — operator dashboard (balance, orders, payments — password-protected)
+- `.env.example`, `vercel.json`, `README.md` — ready to deploy
+
+**3 manual steps remain after generation:**
+1. Fund Xoxoday wallet (Plum Dashboard → Wallet → Add Funds)
+2. Complete KYB with Xoxoday if not done (1–3 business days)
+3. Run `vercel deploy`
+
+---
+
 ## What you can ask Claude
 
 ```
 "What gift card categories are available in the US?"
-"Build me a React gift card storefront for USD"
+"Build me a gift card storefront for USD"
 "Build a loyalty redemption portal where 100 points = $1"
 "What's my current wallet balance?"
 "Place a test order for a $25 Amazon gift card to test@example.com"
