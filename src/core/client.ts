@@ -46,10 +46,11 @@ export async function callApi(body: XoxodayRequest): Promise<unknown> {
 /** Helper: build the standard Xoxoday GraphQL-style body */
 export function buildBody(
   queryName: string,
-  variables: Record<string, unknown> = {}
+  variables: Record<string, unknown> = {},
+  type: 'mutation' | 'query' = 'mutation'
 ): XoxodayRequest {
   return {
-    query:     `plumProAPI.mutation.${queryName}`,
+    query:     `plumProAPI.${type}.${queryName}`,
     tag:       'plumProAPI',
     variables: { data: variables },
   }

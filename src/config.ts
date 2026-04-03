@@ -20,13 +20,16 @@ const BASE_URLS: Record<Environment, string> = {
 }
 
 const AUTH_URLS: Record<Environment, string> = {
-  sandbox:    'https://stagingstores.xoxoday.com/chef/v1/oauth/token',
-  production: 'https://accounts.xoxoday.com/chef/v1/oauth/token',
+  sandbox:    'https://stagingstores.xoxoday.com/chef/v1/oauth/token/user',
+  production: 'https://accounts.xoxoday.com/chef/v1/oauth/token/user',
 }
 
 export const config = {
   clientId:     require('XOXODAY_CLIENT_ID'),
   clientSecret: require('XOXODAY_CLIENT_SECRET'),
+  refreshToken:       process.env.XOXODAY_REFRESH_TOKEN         ?? '',
+  accessToken:        process.env.XOXODAY_ACCESS_TOKEN          ?? '',  // optional: skip auth flow
+  accessTokenExpiry:  parseInt(process.env.XOXODAY_ACCESS_TOKEN_EXPIRY ?? '0'),  // ms epoch, from access_token_expiry in OAuth response
   env,
   transport:    (process.env.XOXODAY_TRANSPORT || 'stdio') as Transport,
   port:         parseInt(process.env.PORT || '3000'),

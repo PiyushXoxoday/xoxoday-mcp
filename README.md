@@ -120,6 +120,7 @@ Deploy this to **Vercel**, **Railway**, or **Render** for a public URL.
 |---|---|---|---|
 | `XOXODAY_CLIENT_ID` | ✅ | — | Your Plum OAuth client ID |
 | `XOXODAY_CLIENT_SECRET` | ✅ | — | Your Plum OAuth client secret |
+| `XOXODAY_REFRESH_TOKEN` | ✅ | — | Your Plum OAuth refresh token (from Plum dashboard) |
 | `XOXODAY_ENV` | — | `sandbox` | `sandbox` or `production` |
 | `XOXODAY_CATEGORIES` | — | `giftcard` | Comma-separated: `giftcard,lounge,merchandise` |
 | `XOXODAY_TRANSPORT` | — | `stdio` | `stdio` (Claude/Cursor) or `http` (ChatGPT) |

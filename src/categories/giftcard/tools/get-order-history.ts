@@ -6,14 +6,16 @@ import { ok, err } from '../../../core/types.js'
 export function register(server: McpServer) {
   server.tool(
     'giftcard_get_order_history',
-    'Fetch paginated list of past gift card orders. Returns order IDs, product names, amounts, delivery status, and timestamps.',
+    'Fetch paginated list of past gift card orders. Returns order IDs, product names, amounts, delivery status, and timestamps. startDate and endDate are required.',
     {
-      page:  z.number().int().min(1).optional().default(1).describe('Page number'),
-      limit: z.number().int().min(1).max(100).optional().default(20).describe('Orders per page'),
+      startDate: z.string().describe('Start date in YYYY-MM-DD format e.g. "2025-01-01"'),
+      endDate:   z.string().describe('End date in YYYY-MM-DD format e.g. "2026-04-03"'),
+      page:      z.number().int().min(1).optional().default(1).describe('Page number'),
+      limit:     z.number().int().min(1).max(100).optional().default(20).describe('Orders per page'),
     },
-    async ({ page, limit }) => {
+    async ({ startDate, endDate, page, limit }) => {
       try {
-        const data = await callApi(buildBody('getOrderHistory', { page, limit }))
+        const data = await callApi(buildBody('getOrderHistory', { startDate, endDate, page, limit }))
         return ok(data)
       } catch (e) {
         return err((e as Error).message)

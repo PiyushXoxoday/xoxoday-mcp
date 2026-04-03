@@ -9,7 +9,7 @@ export function register(server: McpServer) {
     {},
     async () => {
       try {
-        const data = await callApi(buildBody('getBalance'))
+        const data = await callApi(buildBody('getBalance', {}, 'query'))
         return ok(data)
       } catch (e) {
         return err((e as Error).message)

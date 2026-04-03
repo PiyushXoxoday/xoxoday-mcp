@@ -10,6 +10,15 @@ let cache: TokenCache | null = null
 
 export async function getToken(): Promise<string> {
   const now = Date.now()
+
+  // If a static access token is provided, use it — but respect expiry if set
+  if (config.accessToken) {
+    if (!config.accessTokenExpiry || now < config.accessTokenExpiry - 300_000) {
+      return config.accessToken  // still valid (or no expiry configured)
+    }
+    // access token expired — fall through to refresh flow below
+  }
+
   // Refresh 5 minutes before expiry
   if (cache && now < cache.expiresAt - 300_000) {
     return cache.token
@@ -17,9 +26,10 @@ export async function getToken(): Promise<string> {
 
   const res = await fetch(config.authUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type:    'client_credentials',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type:    'refresh_token',
+      refresh_token: config.refreshToken,
       client_id:     config.clientId,
       client_secret: config.clientSecret,
     }),

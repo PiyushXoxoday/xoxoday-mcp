@@ -8,8 +8,8 @@ export function register(server: McpServer) {
     'giftcard_get_vouchers',
     'Fetch the Xoxoday gift card catalog. Returns products with brand logos (imageUrl), denominations (valueDenominations), pricing, loyalty conversion rates, and full product details. Filter by country, currency, category, price range, or product name. Use giftcard_get_filters first to get valid filter values.',
     {
-      country:      z.string().optional().describe('ISO country code e.g. "US", "IN", "GB"'),
-      currencyCode: z.string().optional().describe('Currency code e.g. "USD", "INR", "GBP"'),
+      country:      z.string().optional().describe('filterValueCode from giftcard_get_filters country group e.g. "usa", "india", "uk" (lowercase country names, NOT ISO codes)'),
+      currencyCode: z.string().optional().describe('Currency code e.g. "USD", "INR", "GBP" — use filterValueCode from giftcard_get_filters currencyCode group'),
       category:     z.string().optional().describe('voucher_category filterValueCode from giftcard_get_filters'),
       minPrice:     z.number().optional().describe('Minimum denomination value'),
       maxPrice:     z.number().optional().describe('Maximum denomination value'),
